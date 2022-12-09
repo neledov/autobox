@@ -20,3 +20,4 @@ pip install tqdm<br />
 <br />
 3.launch the upload_files.py script:<br />
 python upload_files.py<br />
+enter interval in minutes and press <enter><br />
