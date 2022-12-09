@@ -14,7 +14,7 @@ interval_seconds = interval_minutes * 60
 
 CONFIG_FILE_PATH = ".\\upload.ini"
 
-# Read the authorization and folder ID variables from the file
+# Read the authorization and folder ID variables from the file \upload.ini
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE_PATH)
 client_id = config["auth"]["client_id"]
