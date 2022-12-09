@@ -13,11 +13,11 @@ enterprise_id=XXX #enterprise_id provided by Box API <br />
 [folder] <br /> 
 folder_id=XXX #folder_id is folder numerical value in last \ section of folder URL when you're in it in Box Web GUI <br /> 
 upload_directory=XXX is upload directory where *.srt files are being kept <br /> 
-<br />
-2.install dependencies:<br />
-pip install boxsdk<br />
-pip install tqdm<br />
+<br/>
+2.install dependencies:<br/>
+pip install boxsdk<br/>
+pip install tqdm<br/>
 <br />
 3.launch the upload_files.py script:<br />
 python upload_files.py<br />
-enter interval in minutes and press <enter><br />
+enter interval in minutes and press enter<br />
