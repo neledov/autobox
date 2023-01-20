@@ -1,86 +1,92 @@
+import logging
 import os
+import subprocess
+
 import dotenv
 import supabase.client as supabase_client
-import subprocess
-from tqdm import tqdm
-import logging
 
-dotenv.load_dotenv()
 
 def main():
+    dotenv.load_dotenv()
 
     logging.basicConfig(level=logging.INFO)
 
-    # Prompt the user for the bucket name
-    bucket_name = "prabyss"
+    logging.info("Oh here we go again...")
+
+    # Set bucket name
+    bucket_name = os.getenv('BUCKET_NAME')
 
     # Set the directories where the files will be downloaded and processed
-    download_directory = "D:/Input/"
-    model_dir = "D:/au/whisper_models/"
-    output_directory = os.path.join("D:/au/", bucket_name)
+    dir_download = os.getenv('DIR_DOWNLOAD')
+    dir_ai_model_loc = os.getenv('DIR_AI_MODEL_LOC')
+    dir_srt_out_base = os.getenv('DIR_SRT_OUT_BASE')
+    dir_srt_out = os.path.join(dir_srt_out_base, bucket_name)
 
-    # Set the OpenAI Whisper command-line arguments
-    openai_args = [
-        "whisper",
-        "--language", "ru",
-        "--model", "medium",
-        "--device", "cuda",
-        "--model_dir", model_dir,
-        "--output_dir", output_directory,
-        "--verbose", "False"
-    ]
-
+    logging.info("Assembiling client creds...")
     # Connect to Supabase
     client = supabase_client.create_client(
         supabase_url=os.getenv('SUPABASE_URL'),
         supabase_key=os.getenv('SUPABASE_KEY')
     )
-    
-    # Get db object with selected records
-    db = client.postgrest.schema("service").from_(bucket_name).select("path").eq("status", "uploaded_test").execute()
+    logging.info("Supabase client set...")
+    # Get query_select object with selected records
+    query_select = client.postgrest.schema("service").from_(bucket_name).select(
+        "*").eq("status", "uploaded_test").limit(2).execute()
 
-    # Get path list from every row in db.data tuple
-    path_list = [row["path"] for row in db.data]
-    # Defile storage
+    # Define storage
     storage = client.storage()
     bucket = storage.get_bucket(bucket_name)
 
-    with tqdm(total=len(path_list)) as pbar:
-        for obj in path_list:
-            try:
-                disk_full_file_path = os.path.join(download_directory, obj)
-                disk_full_file_path_output = os.path.join(output_directory, os.path.basename(disk_full_file_path) + ".srt")
-                file_clean_name = os.path.basename(disk_full_file_path_output)
-                bucket_path = os.path.dirname(obj)
-                dir_of_file = os.path.dirname(disk_full_file_path)
+    for obj in query_select.data:
+        try:
+            # Set the OpenAI Whisper command-line arguments
+            logging.info("Preparing OpenAI Whisper arguments for {0}".format(obj["title"]))
+            openai_args = [
+                "whisper",
+                "--language", obj["lang"],
+                "--model", "small",
+                "--device", "cuda",
+                "--dir_ai_model_loc", dir_ai_model_loc,
+                "--output_dir", dir_srt_out,
+                "--verbose", "False"
+            ]
+            disk_full_file_path = '/'.join([dir_download, obj["path"]])
+            disk_full_file_path_srt = '/'.join(
+                [dir_srt_out, os.path.basename(disk_full_file_path) + ".srt"])
+            file_clean_name = os.path.basename(disk_full_file_path_srt)
+            bucket_path = os.path.dirname(obj["path"])
+            dir_path = os.path.dirname(disk_full_file_path)
+            # Check if directory with bucket name exists if no - create it
+            if not os.path.isdir(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+                logging.info(
+                    "No directories exist: creating directories in the path...")
+            else:
+                logging.info("Directory already exists, skipping...")
+            logging.info("Downloading file from the Supabase path: {0}".format(obj["path"]))
+            file_bytes = bucket.download(obj["path"])
+            with open(disk_full_file_path, "wb") as f:
+                f.write(file_bytes)
+            logging.info("Invoking OpenAI Whisper on downloaded file: {0}".format(disk_full_file_path))
+            subprocess.run(openai_args + [disk_full_file_path])
+        except Exception as e:
+            # Catch any exception that occurs during the processing and log it
+            logging.error(f"An error occurred while processing: {e}")
+            continue
 
-                # Check if directory with bucket name exists if no - create it
-                if not os.path.isdir(dir_of_file):
-                    os.makedirs(dir_of_file, exist_ok=True)
-                    logging.info("creating directories in the path")
-                else:
-                    logging.info("folder already exists, skipping")
-                file_bytes = bucket.download(obj)
-                with open(disk_full_file_path, "wb") as f:
-                    f.write(file_bytes)
-                    subprocess.run(openai_args + [disk_full_file_path])
-            except Exception as e:
-                # Catch any exception that occurs during the processing and log it
-                logging.error(f"An error occurred while processing {disk_full_file_path}: {e}")
-                continue
+        # Upload the output .srt file to the storage bucket
+        try:
+            logging.info("Attempting to upload *.srt file to the bucket {0}...".format(bucket_name))
+            bucket.upload(
+                '/'.join([bucket_path, file_clean_name]), disk_full_file_path_srt)
+            logging.info("Updating table record for {0}".format(obj["title"]))
+            client.postgrest.schema('service').table('prabyss').update(
+                {"status": "processed"}).eq("id", obj["id"]).execute()
+        except Exception as e:
+            logging.error(
+                f"An error occurred while uploading file: {e}")
+            continue
 
-            # Upload the output .srt file to the storage bucket
-            try:
-                with open(disk_full_file_path_output, 'r') as f:
-                    file_content = f.read()
-                bucket.upload(os.path.join(bucket_path, file_clean_name), file_content)
-                updatedb = client.postgrest.schema('service').table('prabyss').update({'status': 'processed'}).eq('path',obj)
-                logging.INFO(updatedb)
-            except Exception as e:
-                logging.error(f"An error occurred while uploading {disk_full_file_path_output}: {e}")
-                continue
-            pbar.update(1)   
-    
-if __name__ == "__main__":
-    main()
-
+while True:
+    if __name__ == "__main__":
+        main()
