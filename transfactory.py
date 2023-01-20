@@ -47,14 +47,15 @@ def main():
                 openai_args = [
                     "whisper",
                     "--language", obj["lang"],
-                    "--model", "small",
+                    "--model", "medium",
                     "--device", "cuda",
-                    "--dir_ai_model_loc", dir_ai_model_loc,
+                    "--model_dir", dir_ai_model_loc,
                     "--output_dir", dir_srt_out,
                     "--verbose", "False"
                 ]
                 file_disk_full_path = '/'.join([dir_download, obj["path"]])
                 file_disk_full_path_srt = '/'.join([dir_srt_out, os.path.basename(file_disk_full_path) + ".srt"])
+                print(file_disk_full_path)
                 file_name_srt = os.path.basename(file_disk_full_path_srt)
                 dir_bucket_path = os.path.dirname(obj["path"])
                 dir_path = os.path.dirname(file_disk_full_path)
