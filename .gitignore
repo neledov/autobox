@@ -1,1 +1,5 @@
 /upload.ini
+.vscode
+venv
+__pycache__
+.env
