@@ -55,7 +55,6 @@ def main():
                 ]
                 file_disk_full_path = '/'.join([dir_download, obj["path"]])
                 file_disk_full_path_srt = '/'.join([dir_srt_out, os.path.basename(file_disk_full_path) + ".srt"])
-                print(file_disk_full_path)
                 file_name_srt = os.path.basename(file_disk_full_path_srt)
                 dir_bucket_path = os.path.dirname(obj["path"])
                 dir_path = os.path.dirname(file_disk_full_path)
