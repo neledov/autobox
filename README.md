@@ -16,8 +16,7 @@ BUCKET_NAME - name of AWS S3 bucket to get files from<br />
 DIR_DOWNLOAD - local download directory for the files from S3 bucket<br />
 DIR_AI_MODEL_LOC - location for compiled AI model<br />
 DIR_SRT_OUT_BASE - local directory to cache .srt files<br />
-
-Run the script with python transfactory.py<br />
+Run the script with 'python transfactory.py'<br />
 <br />
 
 ### File Structure:<br />
