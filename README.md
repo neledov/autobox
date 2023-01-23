@@ -1,4 +1,4 @@
-### Transfactory:<br />
+### TRANSFACTORY processing farm client module:<br />
 This script is used for processing video files and creating subtitles for them. It uses the OpenAI Whisper library, Supabase, and dotenv to connect to a storage bucket, download videos, process them, and upload the generated subtitles back to the storage bucket.<br />
 
 ### Dependencies:<br />
@@ -10,12 +10,12 @@ logging<br />
 
 ### Usage:<br />
 Create a .env file in the root of your project and add the following environment variables:<br />
-SUPABASE_URL<br />
-SUPABASE_KEY<br />
-BUCKET_NAME<br />
-DIR_DOWNLOAD<br />
-DIR_AI_MODEL_LOC<br />
-DIR_SRT_OUT_BASE<br />
+SUPABASE_URL - URI to Supabase REST endpoint<br />
+SUPABASE_KEY - key to Supanase REST endpoint<br />
+BUCKET_NAME - name of AWS S3 bucket to get files from<br />
+DIR_DOWNLOAD - local download directory for the files from S3 bucket<br />
+DIR_AI_MODEL_LOC - location for compiled AI model<br />
+DIR_SRT_OUT_BASE - local directory to cache .srt files<br />
 
 Run the script with python transfactory.py<br />
 <br />
