@@ -47,7 +47,7 @@ def main():
                 openai_args = [
                     "whisper",
                     "--language", obj["lang"],
-                    "--model", "medium",
+                    "--model", obj["model"],
                     "--device", "cuda",
                     "--model_dir", dir_ai_model_loc,
                     "--output_dir", dir_srt_out,
