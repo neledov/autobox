@@ -31,7 +31,7 @@ def main():
     )
     logging.info("Supabase client set...")
     # Get query_select object with selected records
-    query_select = client.postgrest.schema("service").from_(bucket_name).select("*").eq("status", "uploaded").limit(10).execute()
+    query_select = client.postgrest.schema("service").from_(bucket_name).select("*").eq("status", "uploaded").limit(1).execute()
     logging.info("Queried table for availiable work")
     job_queue_size = len(query_select.data)
     if job_queue_size>0:
@@ -70,6 +70,7 @@ def main():
                     f.write(file_bytes)
                 logging.info("Invoking OpenAI Whisper on downloaded file: {0}".format(file_disk_full_path))
                 subprocess.run(openai_args + [file_disk_full_path])
+                client.postgrest.schema('service').table('prabyss').update({"status": "in progress"}).eq("id", obj["id"]).execute()
             except Exception as e:
                 # Catch any exception that occurs during the processing and log it
                 logging.error(f"Oh noes! An error occurred while downloading file: {e}")
