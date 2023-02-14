@@ -2,10 +2,23 @@ import logging
 import os
 import subprocess
 import time
+import datetime
 
 import dotenv
 import supabase.client as supabase_client
 
+def get_formatted_date_time():
+    # Get the current date and time
+    now = datetime.datetime.now()
+
+    # Format the date and time as a string
+    date_time_str = now.strftime("%b %d %Y %H:%M:%S")
+
+    # Return the date and time string
+    return date_time_str
+
+# Call the function and print the result
+print(get_formatted_date_time())
 
 def main():
     dotenv.load_dotenv()
@@ -69,11 +82,15 @@ def main():
                 with open(file_disk_full_path, "wb") as f:
                     f.write(file_bytes)
                 logging.info("Invoking OpenAI Whisper on downloaded file: {0}".format(file_disk_full_path))
-                subprocess.run(openai_args + [file_disk_full_path])
+                logging.info("Updating table record for {0} as IN PROGRESS to avoid duplicate tasking".format(obj["title"]))
                 client.postgrest.schema('service').table('prabyss').update({"status": "in progress"}).eq("id", obj["id"]).execute()
+                client.postgrest.schema('service').table('prabyss').update({"started_at": get_formatted_date_time()}).eq("id", obj["id"]).execute()
+                subprocess.run(openai_args + [file_disk_full_path])
             except Exception as e:
                 # Catch any exception that occurs during the processing and log it
                 logging.error(f"Oh noes! An error occurred while downloading file: {e}")
+                logging.warning("Setting back file status from IN PROGRESS to UPLOADED...")
+                client.postgrest.schema('service').table('prabyss').update({"status": "uploaded"}).eq("id", obj["id"]).execute()
                 continue
 
             # Upload the output .srt file to the storage bucket
@@ -82,9 +99,12 @@ def main():
                 bucket.upload('/'.join([dir_bucket_path, file_name_srt]), file_disk_full_path_srt)
                 logging.info("Updating table record for {0} as PROCESSED".format(obj["title"]))
                 client.postgrest.schema('service').table('prabyss').update({"status": "processed"}).eq("id", obj["id"]).execute()
+                client.postgrest.schema('service').table('prabyss').update({"completed_at": get_formatted_date_time()}).eq("id", obj["id"]).execute()
             except Exception as e:
                 logging.error(
                     f"Oh noes! An error occurred while uploading file: {e}")
+                logging.warning("Setting back file status from IN PROGRESS to UPLOADED...")
+                client.postgrest.schema('service').table('prabyss').update({"status": "uploaded"}).eq("id", obj["id"]).execute()
                 continue
         
     else:
